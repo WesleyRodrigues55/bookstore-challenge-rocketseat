@@ -1,8 +1,8 @@
-import Controller.BookController;
+import Controller.LibraryController;
 
 public class Main {
     public static void main(String[] args) {
-        BookController bookController = new BookController();
-        bookController.run();
+        LibraryController libraryController = new LibraryController();
+        libraryController.run();
     }
 }

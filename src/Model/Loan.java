@@ -1,11 +1,31 @@
 package Model;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 public class Loan {
     private Integer bookId;
-    private String userName;
+    private Book book;
+    private Customer customer;
+    private LocalDateTime loanDate;
 
-    public Loan(Integer bookId, String userName) {
-        this.bookId = bookId;
-        this.userName = userName;
+    public Loan(Book book, Customer customer, LocalDateTime loanDate) {
+        this.book = book;
+        this.customer = customer;
+        this.loanDate = loanDate;
     }
+
+    public Book getBook() {
+        return book;
+    }
+
+    public String getCustomerName() {
+        return customer.getName();
+    }
+
+    public LocalDateTime getLoanDate() {
+        return loanDate;
+    }
+
 }
