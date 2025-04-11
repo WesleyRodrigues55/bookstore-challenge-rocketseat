@@ -11,62 +11,6 @@ import java.util.Optional;
 import java.util.Scanner;
 
 public class LibraryController {
-    public void run() {
-        Library library = initializeData();
-        mainMenu(library);
-    }
-
-    private void mainMenu(Library library) {
-        Scanner scanner = new Scanner(System.in);
-
-        String userCmd;
-        do {
-            System.out.println("Would you like to see the available books?");
-            System.out.println("Press '1' to see the customers");
-            System.out.println("Press '2' to see the book loans made");
-            System.out.println("Press '3' to see the customer loans made");
-            System.out.println("Press 'Y' to continue or 'N' to exit.");
-            userCmd = scanner.nextLine().toUpperCase();
-            CommandOption selectedOption = CommandOption.fromString(userCmd);
-
-            if (selectedOption == null) {
-                System.out.println("Invalid command, please try again.");
-                continue;
-            }
-            /*
-                steps:
-                    -> show log loans of a book                             OK
-                    -> show log loans of a customer                         OK
-                    -> create "book return" ?
-                    -> show logs all loans (included the books returned)
-                    -> search book by (title or author)
-                    -> search books by (gender or recently added)
-             */
-
-            switch (selectedOption) {
-                case LIST_CUSTOMERS:
-                    handleCustomers(library);
-                    break;
-                case LIST_BOOK_LOANS:
-                    handleBookLoans(library);
-                    break;
-                case LIST_CUSTOMER_LOANS:
-                    handleCustomerLoans(library, scanner);
-                    break;
-                case YES:
-                    handleBookLoan(library, scanner);
-                    break;
-                case NO:
-                    System.out.println("The program has been finalized...");
-                    break;
-                default:
-                    System.out.println("Invalid command, please try again");
-                    break;
-            }
-
-        } while (!userCmd.equals("N"));
-    }
-
     private Library initializeData() {
         // create authors
         var author = new AuthorController();
@@ -84,12 +28,101 @@ public class LibraryController {
         return new Library(books, authors, customers);
     }
 
+    public void run() {
+        Library library = initializeData();
+        mainMenu(library);
+    }
+
+    private void mainMenu(Library library) {
+        Scanner scanner = new Scanner(System.in);
+
+        String userCmd;
+        do {
+            System.out.println("Would you like to see the available books?");
+            System.out.println("Press '1' to see the customers");
+            System.out.println("Press '2' to see the book loans made");
+            System.out.println("Press '3' to see the customer loans made and return books");
+            System.out.println("Press '4' to show logs loans");
+            System.out.println("Press 'Y' to continue or 'N' to exit.");
+            userCmd = scanner.nextLine().toUpperCase();
+            CommandOption selectedOption = CommandOption.fromString(userCmd);
+
+            if (selectedOption == null) {
+                System.out.println("Invalid command, please try again.");
+                continue;
+            }
+            /*
+                steps:
+                    -> show log loans of a book                             OK
+                    -> show log loans of a customer                         OK
+                    -> create "book return"                                 OK
+                    -> show logs all loans (included the books returned)
+                        - create model logs and register logs (loans and returns loans)
+                    -> search book by (title or author)
+                    -> search books by (gender or recently added)
+             */
+
+            switch (selectedOption) {
+                case LIST_CUSTOMERS:
+                    handleCustomers(library);
+                    break;
+                case LIST_BOOK_LOANS:
+                    handleBookLoans(library);
+                    break;
+                case LIST_CUSTOMER_LOANS:
+                    handleCustomerLoans(library, scanner);
+                    break;
+                case LIST_LOGS_LOANS:
+                    handleLogsLoans(library);
+                    break;
+                case YES:
+                    handleBookLoan(library, scanner);
+                    break;
+                case NO:
+                    System.out.println("The program has been finalized...");
+                    break;
+                default:
+                    System.out.println("Invalid command, please try again");
+                    break;
+            }
+
+        } while (!userCmd.equals("N"));
+    }
+
     private void handleBookLoans(Library library) {
         System.out.println("Book loans:");
 
         List<Loan> loans = library.getLoans();
+
+        loans.stream()
+                .filter(loan -> loan.getReturnDate() == null)
+                .forEach(loan -> {
+                    System.out.println("Book: " + loan.getBook().getTitle() + " by " + loan.getBook().getAuthor().getName());
+                });
+    }
+
+    private void handleLogsLoans(Library library) {
+        System.out.println("Logs loans:");
+
+        /*
+
+            fix:
+                -> consume logs model
+                -> filter the logs model list
+         */
+
+        List<Loan> loans = library.getLoans();
+
+        if (loans.isEmpty()) {
+            System.out.println("No loans found");
+            return;
+        }
+
         for (Loan loan : loans) {
-            System.out.println("Book: " + loan.getBook().getTitle() + " by " + loan.getBook().getAuthor().getName());
+            System.out.println("Book name: " + loan.getBook().getTitle() + " by " + loan.getBook().getAuthor().getName());
+            System.out.println("Customer: " + loan.getCustomer().getName());
+            System.out.println("Loan date" + loan.getLoanDate());
+            System.out.println(loan.getReturnDate() != null ? "Return loan: " + loan.getReturnDate() + "\n" : "");
         }
     }
 
@@ -119,12 +152,61 @@ public class LibraryController {
                 List<Loan> loans = library.getLoans();
                 var utils = new Utils();
 
-                loans.stream().filter(loan -> loan.getCustomerId().equals(customer.getId())).forEach(loan -> {
-                    System.out.println("BookId: " + loan.getBook().getTitle());
-                    System.out.println("Customer name: " + loan.getCustomerName());
+                loans.stream().filter(loan -> loan.getCustomer().getId().equals(customer.getId())).forEach(loan -> {
+                    System.out.println("BookId: " + loan.getBook().getId());
+                    System.out.println("Customer name: " + loan.getCustomer().getName());
                     System.out.println("Loan date: " + utils.formatDateTime(loan.getLoanDate()));
                     System.out.println();
                 });
+
+                System.out.println("Press 'Y' to return a book or 'N' to exit.");
+                String inputReturnABookOrNot = scanner.nextLine().toUpperCase();
+
+                if (inputReturnABookOrNot.equals("Y")) {
+                    boolean waitingInputBookId = true;
+                    do {
+                        System.out.println("Enter a BookId (or 'back' to return menu): ");
+                        String inputBookId = scanner.nextLine().toLowerCase();
+
+                        // valid input
+                        if (inputBookId.equals("back")) {
+                            System.out.println("back...");
+                            break;
+                        }
+
+                        if (inputBookId.isEmpty()) {
+                            System.out.println("BookId cannot be empty");
+                        }
+
+                        // parse in int and use try catch
+                        try {
+                            int bookId = Integer.parseInt(inputBookId);
+
+                            // filter bookId and customerName
+                            Optional<Loan> foundCustomerLoansBook = loans.stream()
+                                    .filter(loan ->
+                                            loan.getBook().getId().equals(bookId)
+                                                    && inputCustomerName.equals(loan.getCustomer().getName().toLowerCase()))
+                                    .findFirst();
+
+                            if (foundCustomerLoansBook.isPresent()) {
+                                Loan loan = foundCustomerLoansBook.get();
+
+//                                library.getLoans().remove(loan);
+                                loan.getBook().setIsAvailable(true);
+                                loan.setReturnDate(LocalDateTime.now());
+                            } else {
+                                System.out.println("Customer loan not found");
+                            }
+
+                            waitingInputBookId = false;
+
+                        } catch (NumberFormatException e) {
+                            System.out.println("Please enter an integer.\n");
+                        }
+
+                    } while (waitingInputBookId);
+                }
 
                 waitingForEnterCustomerName = false;
 
@@ -156,8 +238,13 @@ public class LibraryController {
 
         boolean waitingForValidBook = true;
         do {
-            System.out.println("Choose a book by ID from the list above: ");
+            System.out.println("Choose a book by ID from the list above (or 'back' to return menu): ");
             String input = scanner.nextLine();
+
+            if (input.equals("back")) {
+                System.out.println("back...");
+                break;
+            }
 
             try {
                 int bookId = Integer.parseInt(input);

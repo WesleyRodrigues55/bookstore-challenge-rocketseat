@@ -4,6 +4,7 @@ public enum CommandOption {
     LIST_CUSTOMERS("1"),
     LIST_BOOK_LOANS("2"),
     LIST_CUSTOMER_LOANS("3"),
+    LIST_LOGS_LOANS("4"),
     YES("Y"),
     NO("N");
 
