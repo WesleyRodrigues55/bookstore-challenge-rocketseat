@@ -24,6 +24,10 @@ public class Loan {
         return customer.getName();
     }
 
+    public Integer getCustomerId() {
+        return customer.getId();
+    }
+
     public LocalDateTime getLoanDate() {
         return loanDate;
     }

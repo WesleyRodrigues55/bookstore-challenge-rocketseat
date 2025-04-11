@@ -2,7 +2,8 @@ package Model;
 
 public enum CommandOption {
     LIST_CUSTOMERS("1"),
-    LIST_LOANS("2"),
+    LIST_BOOK_LOANS("2"),
+    LIST_CUSTOMER_LOANS("3"),
     YES("Y"),
     NO("N");
 

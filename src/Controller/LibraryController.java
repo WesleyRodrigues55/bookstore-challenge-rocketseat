@@ -23,7 +23,8 @@ public class LibraryController {
         do {
             System.out.println("Would you like to see the available books?");
             System.out.println("Press '1' to see the customers");
-            System.out.println("Press '2' to see the loans made");
+            System.out.println("Press '2' to see the book loans made");
+            System.out.println("Press '3' to see the customer loans made");
             System.out.println("Press 'Y' to continue or 'N' to exit.");
             userCmd = scanner.nextLine().toUpperCase();
             CommandOption selectedOption = CommandOption.fromString(userCmd);
@@ -32,13 +33,25 @@ public class LibraryController {
                 System.out.println("Invalid command, please try again.");
                 continue;
             }
+            /*
+                steps:
+                    -> show log loans of a book                             OK
+                    -> show log loans of a customer                         OK
+                    -> create "book return" ?
+                    -> show logs all loans (included the books returned)
+                    -> search book by (title or author)
+                    -> search books by (gender or recently added)
+             */
 
             switch (selectedOption) {
                 case LIST_CUSTOMERS:
                     handleCustomers(library);
                     break;
-                case LIST_LOANS:
-                    handleCustomerLoans(library);
+                case LIST_BOOK_LOANS:
+                    handleBookLoans(library);
+                    break;
+                case LIST_CUSTOMER_LOANS:
+                    handleCustomerLoans(library, scanner);
                     break;
                 case YES:
                     handleBookLoan(library, scanner);
@@ -71,18 +84,55 @@ public class LibraryController {
         return new Library(books, authors, customers);
     }
 
-    private void handleCustomerLoans(Library library) {
-        System.out.println("Customer Loans:");
+    private void handleBookLoans(Library library) {
+        System.out.println("Book loans:");
 
         List<Loan> loans = library.getLoans();
-        var utils = new Utils();
-
         for (Loan loan : loans) {
-            System.out.println("BookId: " + loan.getBook().getTitle());
-            System.out.println("Customer name: " + loan.getCustomerName());
-            System.out.println("Loan date: " + utils.formatDateTime(loan.getLoanDate()));
-            System.out.println();
+            System.out.println("Book: " + loan.getBook().getTitle() + " by " + loan.getBook().getAuthor().getName());
         }
+    }
+
+    private void handleCustomerLoans(Library library, Scanner scanner) {
+        boolean waitingForEnterCustomerName = true;
+        do {
+            System.out.println("Enter customer name (or 'back' to return menu): ");
+            String inputCustomerName = scanner.nextLine().toLowerCase();
+
+            if (inputCustomerName.isEmpty()) {
+                System.out.println("Customer name cannot be empty");
+            }
+
+            if (inputCustomerName.equals("back")) {
+                System.out.println("back...");
+                break;
+            }
+
+            Optional<Customer> foundCustomer = library.getCustomers().stream()
+                    .filter(customer -> inputCustomerName.equals(customer.getName().toLowerCase()))
+                    .findFirst();
+
+            if (foundCustomer.isPresent()) {
+                Customer customer = foundCustomer.get();
+
+                System.out.println("Customer Loans:");
+                List<Loan> loans = library.getLoans();
+                var utils = new Utils();
+
+                loans.stream().filter(loan -> loan.getCustomerId().equals(customer.getId())).forEach(loan -> {
+                    System.out.println("BookId: " + loan.getBook().getTitle());
+                    System.out.println("Customer name: " + loan.getCustomerName());
+                    System.out.println("Loan date: " + utils.formatDateTime(loan.getLoanDate()));
+                    System.out.println();
+                });
+
+                waitingForEnterCustomerName = false;
+
+            } else {
+                System.out.println("Customer not found");
+            }
+        } while (waitingForEnterCustomerName);
+
     }
 
     private void handleCustomers(Library library) {
