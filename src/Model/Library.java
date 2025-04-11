@@ -8,6 +8,7 @@ public class Library {
     private List<Author> authors = new ArrayList<>();
     private List<Loan> loans = new ArrayList<>();
     private List<Customer> customers = new ArrayList<>();
+    private List<LoanLog> loanLogs = new ArrayList<>();
 
     public Library(List<Book> books, List<Author> authors, List<Customer> customers) {
         this.books = books;
@@ -29,6 +30,14 @@ public class Library {
 
     public void setLoan(Loan loan) {
         this.loans.add(loan);
+    }
+
+    public List<LoanLog> getLoanLogs() {
+        return loanLogs;
+    }
+
+    public void setLoanLog(LoanLog loanLog) {
+        this.loanLogs.add(loanLog);
     }
 
 

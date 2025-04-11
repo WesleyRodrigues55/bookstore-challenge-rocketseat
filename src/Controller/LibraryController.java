@@ -56,8 +56,7 @@ public class LibraryController {
                     -> show log loans of a book                             OK
                     -> show log loans of a customer                         OK
                     -> create "book return"                                 OK
-                    -> show logs all loans (included the books returned)
-                        - create model logs and register logs (loans and returns loans)
+                    -> show logs all loans (included the books returned)    OK
                     -> search book by (title or author)
                     -> search books by (gender or recently added)
              */
@@ -95,7 +94,7 @@ public class LibraryController {
         List<Loan> loans = library.getLoans();
 
         loans.stream()
-                .filter(loan -> loan.getReturnDate() == null)
+                .filter(loan -> !loan.getBook().getIsAvailable())
                 .forEach(loan -> {
                     System.out.println("Book: " + loan.getBook().getTitle() + " by " + loan.getBook().getAuthor().getName());
                 });
@@ -104,25 +103,25 @@ public class LibraryController {
     private void handleLogsLoans(Library library) {
         System.out.println("Logs loans:");
 
-        /*
+        List<LoanLog> loanLogs = library.getLoanLogs();
 
-            fix:
-                -> consume logs model
-                -> filter the logs model list
-         */
-
-        List<Loan> loans = library.getLoans();
-
-        if (loans.isEmpty()) {
+        if (loanLogs.isEmpty()) {
             System.out.println("No loans found");
             return;
         }
+        var utils = new Utils();
+        for (LoanLog loansLogs : loanLogs) {
+            var timestamp = utils.formatDateTime(loansLogs.getTimestamp());
+            var returnDate = loansLogs.getLoan().getReturnDate() != null
+                    ? "Return loan: " + utils.formatDateTime(loansLogs.getLoan().getReturnDate()) + "\n"
+                    : "";
 
-        for (Loan loan : loans) {
-            System.out.println("Book name: " + loan.getBook().getTitle() + " by " + loan.getBook().getAuthor().getName());
-            System.out.println("Customer: " + loan.getCustomer().getName());
-            System.out.println("Loan date" + loan.getLoanDate());
-            System.out.println(loan.getReturnDate() != null ? "Return loan: " + loan.getReturnDate() + "\n" : "");
+            System.out.println("------------------------------------------------------------");
+            System.out.println("Message log: " + loansLogs.getMessage());
+            System.out.println("Book name: " + loansLogs.getBook().getTitle() + " by " + loansLogs.getBook().getAuthor().getName());
+            System.out.println("Customer: " + loansLogs.getCustomer().getName());
+            System.out.println("Loan date: " + timestamp);
+            System.out.println(returnDate);
         }
     }
 
@@ -192,9 +191,14 @@ public class LibraryController {
                             if (foundCustomerLoansBook.isPresent()) {
                                 Loan loan = foundCustomerLoansBook.get();
 
-//                                library.getLoans().remove(loan);
                                 loan.getBook().setIsAvailable(true);
-                                loan.setReturnDate(LocalDateTime.now());
+
+                                LocalDateTime now = LocalDateTime.now();
+                                loan.setReturnDate(now);
+                                LoanLog loanLogs = new LoanLog("returning a book", now, loan, customer, loan.getBook());
+                                library.setLoanLog(loanLogs);
+
+                                library.getLoans().remove(loan);
                             } else {
                                 System.out.println("Customer loan not found");
                             }
@@ -292,6 +296,10 @@ public class LibraryController {
 
                 // defines book as borrowed
                 book.setIsAvailable(false);
+
+                // register log and add in list
+                LoanLog loanLog = new LoanLog("registering a loan...", loanDate, loan, customer, book);
+                library.setLoanLog(loanLog);
 
                 System.out.println("Hello " + customer.getName() + ", your loan of book " + book.getTitle() + " has been successfully made!\n");
                 isNameValid = false;
